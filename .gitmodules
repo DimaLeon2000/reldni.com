@@ -1,0 +1,3 @@
+[submodule "vintomb_html5_v1"]
+	path = vintomb_html5_v1
+	url = https://github.com/reldni/vintomb_html5.git
