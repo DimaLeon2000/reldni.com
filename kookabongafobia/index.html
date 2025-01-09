@@ -1,0 +1,272 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Kookabongafobia Encoder and Decoder</title>
+  <style>
+    body {
+      background: #fff url("/back2.gif") repeat;
+      margin-left: 20%;
+      margin-right: 20%;
+    }
+
+    #left-box {
+      float: left;
+      width: 40%;
+    }
+
+    #right-box {
+      float: right;
+      width: 40%;
+    }
+
+    #clear-box {
+      clear: both;
+    }
+
+    textarea {
+      width: 100%;
+      height: 100px;
+    }
+
+    button {
+      margin: 10px 0;
+      padding: 10px 20px;
+      font-size: 16px;
+    }
+
+    .unambiguous {
+      font-family: 'Courier New', Courier, monospace;
+    }
+
+    .dropdown {
+      font-size: 14px;
+      font-family: 'Courier New', Courier, monospace;
+      margin: 0 2px;
+      cursor: pointer;
+    }
+  </style>
+</head>
+
+<body>
+  <h1>Kookabongafobia Encoder and Decoder</h1>
+
+  <p>The Reldni Inc. Kookabongafobia decoder can be used to decipher the secret messages that appear on the Reldni Inc.
+    newsletters.</p>
+  <p>Now you can also use an encoder to write your own "magic words"!</p>
+
+  <div id="left-box">
+    <h2>Encoder</h2>
+    <p>Enter an English sentence below:</p>
+    <textarea id="plainText"></textarea>
+    <button onclick="encodeString()" id="encodeButton" disabled="true">Encode</button>
+    <div id="encodeResult"></div>
+  </div>
+
+  <div id="right-box">
+    <h2>Decoder</h2>
+    <p>Enter a Kookabongafobian message below:</p>
+    <textarea id="inputString"></textarea>
+    <button onclick="decodeString()" id="decodeButton" disabled="true">Decode</button>
+    <div id="decodeResult"></div>
+  </div>
+
+  <div id="clear-box"></div>
+
+  <script>
+    const encodeButton = document.getElementById("encodeButton");
+    const decodeButton = document.getElementById("decodeButton");
+    const encodeText = document.getElementById("plainText");
+    const decodeText = document.getElementById("inputString");
+    encodeText.addEventListener('input', () => {
+      encodeButton.disabled = encodeText.value == '';
+    });
+    decodeText.addEventListener('input', () => {
+      decodeButton.disabled = decodeText.value == '';
+    });
+
+    // Mapping dictionary
+    const mapping = {
+      "Briet": "A",
+      "Iut": "B",
+      "Utd": "C",
+      "Xaz": "D",
+      "I": "E",
+      "Op": "F",
+      "Hah": "G",
+      "Ui": "H",
+      "iu": "I",
+      "J": "J",
+      "C": "K",
+      "O": "L",
+      "M": "M",
+      "Flo": "N",
+      "Ho": "O",
+      "Pi": "P",
+      "Zar": "Q",
+      "Er": "R",
+      "Pou": "S",
+      "rac": "T",
+      "You": "U",
+      "Va": "V",
+      "Wa": "W",
+      "*": "X",
+      "Wh": "Y",
+      "Ed": "Z",
+      "riet": "a",
+      "ut": "b",
+      "utd": "c",
+      "az": "d",
+      "ih": "e",
+      "ph": "f",
+      "ah": "g",
+      "i": "h",
+      "u": "i",
+      "sa": "j",
+      "ca": "k",
+      "at": "l",
+      "da": "m",
+      "dra": "n",
+      "on": "o",
+      "uip": "p",
+      "ar": "q",
+      "re": "r",
+      "tion": "s",
+      "ugh": "t",
+      "ou": "u",
+      "vic": "v",
+      "iop": "w",
+      "varn": "x",
+      "ge": "y",
+      "ed": "z"
+    };
+
+    // Decode Kookabongafobia to English
+    function decodeString() {
+      function decodeBacktracking(s, mapping, path = "", solutions = [], start = 0, unmatchedCount = 0) {
+        if (start === s.length) {
+          solutions.push({ decoded: path, unmatchedCount });
+          return solutions;
+        }
+
+        let matched = false;
+        for (let end = start + 1; end <= s.length; end++) {
+          const substring = s.slice(start, end);
+          if (mapping[substring]) {
+            decodeBacktracking(s, mapping, path + mapping[substring], solutions, end, unmatchedCount);
+            matched = true;
+          }
+        }
+
+        if (!matched) {
+          if (!s.slice(start, start + 1).match(/[a-z\*]/i)) {
+            path += s.slice(start, start + 1);
+          } else {
+            unmatchedCount++;
+          }
+          decodeBacktracking(s, mapping, path, solutions, start + 1, unmatchedCount);
+        }
+
+        return solutions;
+      }
+
+      const input = document.getElementById("inputString").value.trim();
+      const decodeResultDiv = document.getElementById("decodeResult");
+
+      const words = input.split(/\s+/);
+
+      const decodedWords = words.map((word) => {
+        let solutions = decodeBacktracking(word, mapping);
+
+        // Take the best solutions (fewest unmatched characters)
+        const minimumUnmatched = Math.min(...solutions.map((s) => s.unmatchedCount));
+        solutions = solutions.filter((word) => word.unmatchedCount === minimumUnmatched);
+
+        return solutions.length > 0 ? solutions.map((s) => s.decoded) : [`[Unmatched: ${word}]`];
+      });
+
+      if (decodedWords.every(v => v.length === 1)) {
+        decodeResultDiv.innerHTML = `<h3>Decoded Output:</h3><p>${decodedWords.join(" ")}</p>`;
+      } else {
+        decodeResultDiv.innerHTML = "<p>This message is ambiguous! Please select the most appropriate option for each ambiguous word.</p>";
+        renderInteractiveSentence(decodedWords, decodeResultDiv);
+      }
+    }
+
+    // Render the sentence with dropdowns for ambiguous words
+    function renderInteractiveSentence(decodedWords, container) {
+      const sentenceDiv = document.createElement("div");
+      console.log(decodedWords);
+
+      decodedWords.forEach((word, index) => {
+        if (word.length > 1) {
+          // Create a dropdown for ambiguous words
+          const select = document.createElement("select");
+          select.classList.add("dropdown");
+          select.setAttribute("data-index", index);
+          console.log(index);
+
+          word.forEach((option) => {
+            const optionElement = document.createElement("option");
+            optionElement.value = option;
+            optionElement.textContent = option;
+            select.appendChild(optionElement);
+          });
+
+          select.addEventListener("change", () => updateSentence(decodedWords, sentenceDiv));
+          container.appendChild(select);
+        } else {
+          // Unambiguous word - display it plainly
+          const span = document.createElement("span");
+          span.textContent = word[0];
+          span.classList.add("unambiguous");
+          container.appendChild(span);
+        }
+
+        container.appendChild(document.createTextNode(" "));
+      });
+      container.appendChild(sentenceDiv);
+      updateSentence(decodedWords, sentenceDiv);
+    }
+
+    function updateSentence(decodedWords, container) {
+      let decoded = "";
+      decodedWords.forEach((word, index) => {
+        if (word.length > 1) {
+          const option = document.querySelectorAll(`[data-index="${index}"]`)[0];
+          decoded += option.value;
+        } else {
+          // Unambiguous word - display it plainly
+          decoded += word[0];
+        }
+        decoded += " ";
+      });
+      container.innerHTML = `<h3>Decoded Output:</h3><p>${decoded}</p>`;
+    }
+
+    // Reverse the mapping for encoding
+    const reverseMapping = Object.fromEntries(
+      Object.entries(mapping).map(([key, value]) => [value, key])
+    );
+
+    // Encode English to Kookabongafobia
+    function encodeString() {
+      const plainText = document.getElementById("plainText").value;
+      let encoded = "";
+
+      for (const char of plainText) {
+        if (reverseMapping[char]) {
+          encoded += reverseMapping[char];
+        } else {
+          encoded += char; // Leave unsupported characters as is
+        }
+      }
+
+      document.getElementById("encodeResult").innerHTML = `<h3>Encoded Output:</h3><p>${encoded}</p>`;
+    }
+  </script>
+</body>
+
+</html>
